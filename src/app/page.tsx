@@ -5,9 +5,9 @@ const appUrl = process.env.NEXT_PUBLIC_URL;
 
 const frame = {
   version: "next",
-  imageUrl: `${appUrl}/opengraph-image`,
+  imageUrl: `${appUrl}/opengraph-image.png`,
   button: {
-    title: "Launch Frame",
+    title: "Yoink with an embedded wallet!",
     action: {
       type: "launch_frame",
       name: "Privy Frames v2 Demo",

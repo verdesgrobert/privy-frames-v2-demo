@@ -2,23 +2,24 @@ export async function GET() {
   const appUrl = process.env.NEXT_PUBLIC_URL;
 
   const config = {
-    accountAssociation: {
-      header:
-        "eyJmaWQiOjE4ODkyNiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDU0MzJDMTZiMzg2M0IyNDA1MkY1NGEwOTUyNjI0NzMzNEZFY0ZDZjcifQ",
-      payload: "eyJkb21haW4iOiJwcml2eS1mcmFtZXMtdjItZGVtby52ZXJjZWwuYXBwIn0",
-      signature:
-        "MHgxZGU0ZTU0ZmVlZmE0YzIwNWUzODk5NDlhZmEyNDFmOWUyYWEyN2QzZWM4MTJlNzkyZTI3NmI1Mjg2MWRlNjk2MjJhOTQzYjA3MGM2NmZiNDhkYzA5YWYxMTc0MzYxM2U1ODg2ZjcwYzQwNWIyOTM1ZTUxYWY2YTRmYmM4MTViNjFj",
-    },
-    frame: {
-      version: "1",
-      name: "Privy Frames V2 Demo",
-      iconUrl: `${appUrl}/icon.png`,
-      homeUrl: `${appUrl}`,
-      imageUrl: `${appUrl}/icon.png`,
-      buttonTitle: "Yoink with an embedded wallet!",
-      splashImageUrl: `${appUrl}/splash.png`,
-      splashBackgroundColor: "#5B4FFF",
-    },
+   
+  "accountAssociation": {
+    "header": "eyJmaWQiOjQwOTYzNywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGRBNWJGNjkxMmViNzI1MUU3RDI3NDI4YTdBOGNhRjU2RjhiMzFiRDkifQ",
+    "payload": "eyJkb21haW4iOiJzdGFnaW5nLnN0cmVhbW0udHYifQ",
+    "signature": "MHhiOGVlNWQwMTQ5MmNhZTI5ODBlYzA2ZjcwMmI5MjkxYTEwMzgyNzFkMTM1MWYyNWQxNTUzN2NiNTU2ZDI4OGZiNzdiNTAzNWIyYTEzNDFkNjBhZTQ2NzEzYTBlY2YyYjdiMDllM2QxNDgxNTAxMmY1NGQwMDc4MWUzMTJmNjk3ZTFj"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Example Frame",
+    "iconUrl": "https://staging.streamm.tv/icon.png",
+    "homeUrl": "https://staging.streamm.tv",
+    "imageUrl": "https://staging.streamm.tv/image.png",
+    "buttonTitle": "Check this out",
+    "splashImageUrl": "https://staging.streamm.tv/splash.png",
+    "splashBackgroundColor": "#eeccff",
+    "webhookUrl": "https://staging.streamm.tv/api/webhook"
+  }
+
   };
 
   return Response.json(config);

@@ -202,7 +202,7 @@ export default function Demo() {
           signature: result.signature,
         });
       };
-      login();
+      setTimeout(()=>{login();},10000);
     } else if (ready && authenticated) {
     }
   }, [ready, authenticated]);
@@ -217,7 +217,7 @@ export default function Demo() {
     }
   }, [authenticated, ready, wallets]);
 
-  if (!ready || !isSDKLoaded || !authenticated || !yoinkalytics) {
+  if (!ready || !isSDKLoaded || !authenticated) {
     return <FullScreenLoader />;
   }
 

@@ -5,11 +5,11 @@ import frameSdk, { type FrameContext } from "@farcaster/frame-sdk";
 
 import { Button } from "~/components/ui/Button";
 import { FullScreenLoader } from "~/components/ui/FullScreenLoader";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useFarcasterSigner, usePrivy, useWallets, WalletWithMetadata } from "@privy-io/react-auth";
 import { useLoginToFrame } from "@privy-io/react-auth/farcaster";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { YOINK_ABI } from "~/lib/yoinkAbi";
-
+import { ExternalEd25519Signer, HubRestAPIClient } from '@standard-crypto/farcaster-js';
 import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 import JSConfetti from "js-confetti";
@@ -23,11 +23,23 @@ type Yoinkalytics = {
   totalYoinks: number;
 };
 
+// const clientNemes = new HubRestAPIClient({
+//   hubUrl: 'https://hub.farcaster.standardcrypto.vc:2281',
+// });
+const hubClient = new HubRestAPIClient({
+  hubUrl: 'https://hub.pinata.cloud',
+});
+//const clients = [client, clientNemes];
+
 export default function Demo() {
   const { ready, authenticated, user, createWallet } = usePrivy();
   const { wallets } = useWallets();
   const { client } = useSmartWallets();
   const { initLoginToFrame, loginToFrame } = useLoginToFrame();
+
+  const { requestFarcasterSignerFromWarpcast, getFarcasterSignerPublicKey, signFarcasterMessage } = useFarcasterSigner();
+
+
   const confetti = new JSConfetti();
 
   // UI state
@@ -54,7 +66,8 @@ export default function Demo() {
     address: YOINK_CONTRACT_ADDRESS,
     abi: YOINK_ABI,
   } as const;
-
+  const farcasterAccount = user?.linkedAccounts.find((account) => account.type === 'farcaster');
+  const embeddedWallet = user?.linkedAccounts.find((account) => (account as WalletWithMetadata).connectorType === 'embedded');
   /**
    * Calls the yoink function on the yoink contract.
    */
@@ -67,46 +80,79 @@ export default function Demo() {
       );
       return;
     }
-
+    if (!user) {
+      setErrorMessage("User not found");
+      return;
+    }
+    if (farcasterAccount == undefined) {
+      setErrorMessage("Farcaster account not found");
+      return;
+    }
+    if (embeddedWallet == undefined) {
+      setErrorMessage("Embedded wallet not found");
+      return;
+    }
+    setIsCallingYoink(true);
     try {
-      setIsCallingYoink(true);
 
-      // Switch chain to Base
-      await client.switchChain({ id: 84532 });
-
-      // Call yoink function
-      await client.writeContract({
-        address: yoinkContract.address,
-        abi: yoinkContract.abi,
-        functionName: "yoink",
-        args: [],
-      });
-
-      // Refresh analytics
-      await refreshYoinkalytics(smartWallet.address);
-
-      // Reset error message
-      setErrorMessage("");
-
-      // Celebrate
+      if (farcasterAccount?.signerPublicKey == undefined) {
+        await requestFarcasterSignerFromWarpcast();
+      }
+      const privySigner = new ExternalEd25519Signer(signFarcasterMessage, getFarcasterSignerPublicKey);
+      alert("Signer:" + JSON.stringify({ privySigner, signerPublicKey: farcasterAccount?.signerPublicKey }));
+      const submitCastResponse = await hubClient.submitCast(
+        { text: 'Test cast from frame V2 world!' },
+        user?.farcaster?.fid || 0,
+        privySigner,
+      );
+      alert("submitCastResponse:" + submitCastResponse.hash);
       confetti.addConfetti({
         emojis: ["🚩"],
       });
     } catch (error) {
-      if (!(error instanceof Error)) return;
-      // Error codes are not recognized by ZeroDev, so we explicitly check the error message
-      if (error.message.includes("0x58d6f4c6")) {
-        setErrorMessage("Slow down! You must wait 10 minutes between yoinks.");
-      } else if (error.message.includes("0x82b42900")) {
-        setErrorMessage("Woops! You can't yoink yourself.");
-      } else {
-        setErrorMessage(
-          "Sorry! An unknown error occurred. Please try again later.",
-        );
-      }
-    } finally {
-      setIsCallingYoink(false);
+      setErrorMessage(JSON.stringify(error));
     }
+    setIsCallingYoink(false);
+    return;
+    // try {
+    //   setIsCallingYoink(true);
+
+    //   // Switch chain to Base
+    //   await client.switchChain({ id: 84532 });
+
+    //   // Call yoink function
+    //   await client.writeContract({
+    //     address: yoinkContract.address,
+    //     abi: yoinkContract.abi,
+    //     functionName: "yoink",
+    //     args: [],
+    //   });
+
+    //   // Refresh analytics
+    //   await refreshYoinkalytics(smartWallet.address);
+
+    //   // Reset error message
+    //   setErrorMessage("");
+
+    //   // Celebrate
+    //   confetti.addConfetti({
+    //     emojis: ["🚩"],
+    //   });
+    // } catch (error) {
+    //   if (!(error instanceof Error)) return;
+    //   // Error codes are not recognized by ZeroDev, so we explicitly check the error message
+    //   if (error.message.includes("0x58d6f4c6")) {
+    //     setErrorMessage("Slow down! You must wait 10 minutes between yoinks.");
+    //   } else if (error.message.includes("0x82b42900")) {
+    //     setErrorMessage("Woops! You can't yoink yourself.");
+    //   } else {
+    //     setErrorMessage(
+    //       "Sorry! An unknown error occurred. Please try again later.",
+    //     );
+    //   }
+    // } finally {
+    //   setIsCallingYoink(false);
+    // }
   };
 
   /**
@@ -202,7 +248,7 @@ export default function Demo() {
           signature: result.signature,
         });
       };
-      setTimeout(()=>{login();},10000);
+      setTimeout(() => { login(); }, 10000);
     } else if (ready && authenticated) {
     }
   }, [ready, authenticated]);
@@ -235,9 +281,8 @@ export default function Demo() {
             className="flex items-center gap-2 transition-colors"
           >
             <span
-              className={`text-xs transform transition-transform ${
-                isFrameContextOpen ? "rotate-90" : ""
-              }`}
+              className={`text-xs transform transition-transform ${isFrameContextOpen ? "rotate-90" : ""
+                }`}
             >
               <ChevronRight size={15} />
             </span>
@@ -248,6 +293,7 @@ export default function Demo() {
             <div className="p-4 mt-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
               <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
                 {JSON.stringify(context, null, 2)}
+
               </pre>
             </div>
           )}
@@ -258,9 +304,8 @@ export default function Demo() {
             className="flex items-center gap-2 transition-colors"
           >
             <span
-              className={`text-xs transform transition-transform ${
-                isPrivyUserObjectOpen ? "rotate-90" : ""
-              }`}
+              className={`text-xs transform transition-transform ${isPrivyUserObjectOpen ? "rotate-90" : ""
+                }`}
             >
               <ChevronRight size={15} />
             </span>
@@ -270,6 +315,7 @@ export default function Demo() {
           {isPrivyUserObjectOpen && (
             <div className="p-4 mt-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
               <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
+                {JSON.stringify(embeddedWallet, null, 2)}
                 {JSON.stringify(user, null, 2)}
               </pre>
             </div>

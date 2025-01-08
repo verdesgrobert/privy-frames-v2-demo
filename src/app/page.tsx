@@ -7,7 +7,7 @@ const frame = {
   version: "next",
   imageUrl: `${appUrl}/opengraph-image.png`,
   button: {
-    title: "Yoink with an embedded wallet!",
+    title: "Test Cast with an embedded wallet!",
     action: {
       type: "launch_frame",
       name: "Privy Frames v2 Demo",

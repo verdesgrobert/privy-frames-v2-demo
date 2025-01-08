@@ -30,11 +30,12 @@ const hubClient = new HubRestAPIClient({
   hubUrl: 'https://hub.pinata.cloud',
 });
 //const clients = [client, clientNemes];
-
+window.console.warn = (...msg) => alert(JSON.stringify({ ...msg }));
+window.console.error = (...msg) => alert("ERROR:" + JSON.stringify({ ...msg }));
 export default function Demo() {
-  const { ready, authenticated, user, createWallet } = usePrivy();
+  const { ready, authenticated, user, createWallet, login } = usePrivy();
   const { wallets } = useWallets();
-  const { client } = useSmartWallets();
+  //const { client } = useSmartWallets();
   const { initLoginToFrame, loginToFrame } = useLoginToFrame();
 
   const { requestFarcasterSignerFromWarpcast, getFarcasterSignerPublicKey, signFarcasterMessage } = useFarcasterSigner();
@@ -72,15 +73,15 @@ export default function Demo() {
    * Calls the yoink function on the yoink contract.
    */
   const yoinkFlag = async () => {
-    if (!client) return;
+    //if (!client) return;
 
-    if (!smartWallet) {
-      setErrorMessage(
-        "Smart wallet has not yet been created. Unable to yoink.",
-      );
-      return;
-    }
-    if (!user) {
+    // if (!smartWallet) {
+    //   setErrorMessage(
+    //     "Smart wallet has not yet been created. Unable to yoink.",
+    //   );
+    //   return;
+    // }
+    if (!user && ready) {
       setErrorMessage("User not found");
       return;
     }
@@ -92,25 +93,50 @@ export default function Demo() {
       setErrorMessage("Embedded wallet not found");
       return;
     }
+    alert("Trying to yoink");
     setIsCallingYoink(true);
     try {
 
       if (farcasterAccount?.signerPublicKey == undefined) {
+        alert("Requesting signer from warpcast");
         await requestFarcasterSignerFromWarpcast();
       }
-      const privySigner = new ExternalEd25519Signer(signFarcasterMessage, getFarcasterSignerPublicKey);
-      alert("Signer:" + JSON.stringify({ privySigner, signerPublicKey: farcasterAccount?.signerPublicKey }));
-      const submitCastResponse = await hubClient.submitCast(
-        { text: 'Test cast from frame V2 world!' },
-        user?.farcaster?.fid || 0,
-        privySigner,
-      );
-      alert("submitCastResponse:" + submitCastResponse.hash);
+      // const privySigner = new ExternalEd25519Signer(signFarcasterMessage, getFarcasterSignerPublicKey);
+      // alert("Signer:" + JSON.stringify({ privySigner, signerPublicKey: farcasterAccount?.signerPublicKey }));
+      // const signedMessageF = await signFarcasterMessage(Buffer.from("TEst message to sign"));
+      // alert("Signing message result:" + JSON.stringify({ msg: signedMessageF.toString() }));
+      // const signedMessage = await privySigner.signMessageHash(Buffer.from("TEst message to sign"));
+      // if (signedMessage.isOk()) {
+      //   alert("Signed message:" + signedMessage.value.toString());
+      // } else {
+      //   alert("Error Signing message:" + JSON.stringify(signedMessage.error));
+      // }
+      const alertParent = (win: Window, str: string) => {
+        str += win.location.href + "\n";
+
+        if (win.parent) {
+          str += alertParent(win.parent, str);
+        }
+        return str;
+      };
+      const iframes = "";//alertParent(window, "");
+      const iframesInfo = Array.from(document.querySelectorAll("iframe")).map((iframe: any) => {
+        return iframe.src + "  " + iframe.title + "\n";
+      });
+      alert("IFrames:" + iframes + "\n" + iframesInfo.join("\n"));
+      alert(JSON.stringify({ window, windowp: window.parent, windowpp: window.parent.parent }));
+      // const submitCastResponse = await hubClient.submitCast(
+      //   { text: 'Test cast from frame V2 world!' },
+      //   user?.farcaster?.fid || 0,
+      //   privySigner,
+      // );
+      // alert("submitCastResponse:" + submitCastResponse.hash);
       confetti.addConfetti({
         emojis: ["🚩"],
       });
     } catch (error) {
       setErrorMessage(JSON.stringify(error));
+      alert(error);
     }
     setIsCallingYoink(false);
     return;
@@ -240,7 +266,12 @@ export default function Demo() {
   // Login to Frame with Privy automatically
   useEffect(() => {
     if (ready && !authenticated) {
-      const login = async () => {
+      const doLogin = async () => {
+        if (isSDKLoaded && !context) {
+          console.log("SDK LOADED")
+          login();
+          return;
+        }
         const { nonce } = await initLoginToFrame();
         const result = await frameSdk.actions.signIn({ nonce: nonce });
         await loginToFrame({
@@ -248,7 +279,7 @@ export default function Demo() {
           signature: result.signature,
         });
       };
-      setTimeout(() => { login(); }, 10000);
+      setTimeout(() => { doLogin(); }, 10000);
     } else if (ready && authenticated) {
     }
   }, [ready, authenticated]);
@@ -257,14 +288,24 @@ export default function Demo() {
     if (
       authenticated &&
       ready &&
-      wallets.filter((w) => w.walletClientType === "privy").length === 0
+      wallets.filter((w) => w.walletClientType === "privy").length === 0 && embeddedWallet == undefined
     ) {
       createWallet();
     }
   }, [authenticated, ready, wallets]);
 
+  useEffect(() => {
+    window.addEventListener('error', (event) => {
+      if ((event.currentTarget as any).tagName === 'IFRAME') {
+        alert('Error loading iframe:' + JSON.stringify({ src: (event.target as any).src, event }));
+      }
+    }, true);
+  }, []);
   if (!ready || !isSDKLoaded || !authenticated) {
-    return <FullScreenLoader />;
+    return <div>
+      {JSON.stringify({ ready, isSDKLoaded, authenticated })}
+      <FullScreenLoader />
+    </div>;
   }
 
   return (

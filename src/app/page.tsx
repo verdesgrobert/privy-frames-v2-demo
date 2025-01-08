@@ -18,7 +18,7 @@ const frame = {
   },
 };
 
-export const revalidate = 300;
+export const revalidate = 10;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {

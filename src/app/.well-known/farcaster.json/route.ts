@@ -9,7 +9,7 @@ export async function GET() {
     },
     "frame": {
       "version": "1",
-      "name": "Example Frame",
+      "name": "Example Frame v2",
       "iconUrl": "https://staging.streamm.tv/icon.png",
       "homeUrl": "https://staging.streamm.tv",
       "imageUrl": "https://staging.streamm.tv/image.png",

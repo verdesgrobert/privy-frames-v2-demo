@@ -6,7 +6,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const appUrl = "https://streamm.appboxstudios.com/"
+  const appUrl = "https://staging.streamm.tv/"
   const frame = {
     version: "next",
     imageUrl: `${appUrl}/opengraph-image.png`,
